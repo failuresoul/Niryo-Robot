@@ -41,7 +41,7 @@ except ImportError:
 # =========================================
 # CONFIG
 # =========================================
-ROBOT_IP = "192.168.0.103"
+ROBOT_IP = "10.10.10.10"
 WORKSPACE_NAME = "work_2k22"
 
 AUDIO_BACKEND = "usb"                        # "usb" or "gpio"
