@@ -27,7 +27,7 @@ detector = vision.HandLandmarker.create_from_options(options)
 
 # --- Robot connection ---
 try:
-    robot = NiryoRobot("192.168.0.103")
+    robot = NiryoRobot("10.10.10.10")
     robot.arm.calibrate_auto()
 except Exception as e:
     print(f"Connection failed: {e}")
@@ -151,7 +151,7 @@ def is_right_hand(handedness_list):
     return handedness_list[0].category_name == "Left"
 
 # --- Camera ---
-cap = cv2.VideoCapture("http://192.168.0.100:8080/video")
+cap = cv2.VideoCapture("http://10.10.10.100:8080/video")
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
 INFERENCE_EVERY  = 3
