@@ -361,6 +361,7 @@ Voice control runs headlessly on a **Raspberry Pi 5** as a `systemd` service. It
 
 ---
 
+
 ## Module 3B — Bangla Voice Command Control
 
 **File:** `voiceCommandBangla.py` ← *Separate standalone script for Bangla only*
@@ -374,24 +375,26 @@ A dedicated Bangla voice controller that runs independently from the English mod
 python voiceCommandBangla.py
 ```
 
+All Bangla commands and their mappings are documented inside `voiceCommandBangla.py`.
+
 ### Bangla Command Reference (বাংলা কমান্ড)
 
-| Bangla Command | Bengali Script | Meaning | Robot Action |
+| Bangla (Phonetic) | Bengali Script | Meaning | Robot Action |
 |---|---|---|---|
 | `tulun` | তুলুন | Pick it up | Vision scan and grasp object |
-| `rakun` | রাখুন | Put it down / Place | Drop at default bin |
-| `dekun` | দেখুন | Look / Check / See | Detect object in workspace |
-| `shajan` | সাজান | Arrange / Sort | Vision pick + auto color-sort drop |
-| `chodun` | ছাড়ুন | Release / Let go | Open gripper — release object |
+| `rakun` | রাখুন | Put it down | Drop at default bin |
+| `dekun` | দেখুন | Look / Check | Detect object in workspace |
+| `shajan` | সাজান | Sort / Arrange | Vision pick + auto color-sort |
+| `chodun` | ছাড়ুন | Release | Open gripper — release object |
 | `lal bine rakun` | লাল বিনে রাখুন | Put in red bin | Move to RED drop pose |
 | `nil bine rakun` | নীল বিনে রাখুন | Put in blue bin | Move to BLUE drop pose |
 | `shobuj bine rakun` | সবুজ বিনে রাখুন | Put in green bin | Move to GREEN drop pose |
-| `rang ki` | রং কী | What color is it? | Detect and report color |
-| `akiti ki` | আকৃতি কী | What shape is it? | Detect and report shape |
-| `bari jao` | বাড়ি যাও | Go home / Rest | Return to observation pose |
-| `bondho koro` | বন্ধ করো | Shut down / Stop | Safe shutdown |
+| `rang ki` | রং কী | What color? | Detect and report color |
+| `akiti ki` | আকৃতি কী | What shape? | Detect and report shape |
+| `bari jao` | বাড়ি যাও | Go home | Return to observation pose |
+| `bondho koro` | বন্ধ করো | Shut down | Safe shutdown |
 
-> **How matching works:** The Zipformer outputs romanized Bengali phonetics. The script uses **substring matching** on these phonetics — so even if the model outputs `tul` instead of `tulun`, the command is still correctly matched.
+
 
 ### Module 3B Configuration
 
@@ -411,6 +414,7 @@ SHERPA_TOKENS  = "models/bangla-zipformer/tokens.txt"
 ```
 
 ---
+
 
 ## Module 3 — Common Voice Setup
 
