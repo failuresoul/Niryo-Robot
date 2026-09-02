@@ -353,97 +353,25 @@ The display window shows green dots on all 21 hand landmarks, direction arrow fr
 
 ## Module 3A — English Voice Command Control
 
-**File:** `voiceCommandFinal.py`
+**File:** `voiceCommandFinal.py` | **Platform:** Raspberry Pi 5 (headless `systemd` service)
 
 ### How It Works
 
-Voice control runs headlessly on a **Raspberry Pi 5** as a `systemd` service. It listens via USB microphone, transcribes speech using a selectable STT engine, speaks feedback via USB speaker, and sends commands wirelessly.
-
----
-
-
-## Module 3B — Bangla Voice Command Control
-
-**File:** `voiceCommandBangla.py` ← *Separate standalone script for Bangla only*
-
-### How It Works
-
-A dedicated Bangla voice controller that runs independently from the English module. Uses the **Sherpa-ONNX Online Zipformer Transducer** model for real-time, fully offline Bangla speech recognition — no changes needed in `voiceCommandFinal.py`.
-
-```bash
-# Run Bangla voice control separately
-python voiceCommandBangla.py
-```
-
-All Bangla commands and their mappings are documented inside `voiceCommandBangla.py`.
-
-### Bangla Command Reference (বাংলা কমান্ড)
-
-| Bangla (Phonetic) | Bengali Script | Meaning | Robot Action |
-|---|---|---|---|
-| `tulun` | তুলুন | Pick it up | Vision scan and grasp object |
-| `rakun` | রাখুন | Put it down | Drop at default bin |
-| `dekun` | দেখুন | Look / Check | Detect object in workspace |
-| `shajan` | সাজান | Sort / Arrange | Vision pick + auto color-sort |
-| `chodun` | ছাড়ুন | Release | Open gripper — release object |
-| `lal bine rakun` | লাল বিনে রাখুন | Put in red bin | Move to RED drop pose |
-| `nil bine rakun` | নীল বিনে রাখুন | Put in blue bin | Move to BLUE drop pose |
-| `shobuj bine rakun` | সবুজ বিনে রাখুন | Put in green bin | Move to GREEN drop pose |
-| `rang ki` | রং কী | What color? | Detect and report color |
-| `akiti ki` | আকৃতি কী | What shape? | Detect and report shape |
-| `bari jao` | বাড়ি যাও | Go home | Return to observation pose |
-| `bondho koro` | বন্ধ করো | Shut down | Safe shutdown |
-
-
-
-### Module 3B Configuration
-
-Edit the top of `voiceCommandBangla.py`:
-
-```python
-ROBOT_IP       = "10.10.10.10"          # Niryo Ned IP
-WORKSPACE_NAME = "work_2k22"            # Calibrated workspace
-RECORD_SECONDS = 4                      # Listening window
-SAMPLE_RATE    = 16000                  # Must be 16000 for Zipformer
-
-# Paths to downloaded Sherpa-ONNX Bangla Zipformer model files
-SHERPA_ENCODER = "models/bangla-zipformer/encoder-epoch-99-avg-1.onnx"
-SHERPA_DECODER = "models/bangla-zipformer/decoder-epoch-99-avg-1.onnx"
-SHERPA_JOINER  = "models/bangla-zipformer/joiner-epoch-99-avg-1.onnx"
-SHERPA_TOKENS  = "models/bangla-zipformer/tokens.txt"
-```
-
----
-
-
-## Module 3 — Common Voice Setup
+Runs headlessly on a Raspberry Pi 5. Listens via USB microphone, transcribes speech using a selectable STT engine, speaks feedback through a USB speaker, and sends commands to the robot wirelessly.
 
 ### Speech-to-Text Engine Options
 
 | Engine | Type | Language | Config Value |
 |---|---|---|---|
-| Google Speech Recognition | Cloud (needs internet) | English + multilingual | "google" |
-| faster-whisper | Local offline CPU/GPU | English (tiny to large) | "faster_whisper" |
-| Sherpa-ONNX Zipformer | Local offline streaming transducer | **Bangla** | see below |
-
-### Bangla Language Support — Sherpa-ONNX Zipformer
-
-For robust **Bangla (Bengali)** speech recognition, the project integrates the Sherpa-ONNX online Zipformer transducer model.
-
-Model download: https://k2-fsa.github.io/sherpa/onnx/pretrained_models/online-transducer/zipformer-transducer-models.html
-
-Key advantages:
-- Real-time streaming with very low latency
-- Fully offline — no internet required after model download
-- Native Bangla script output
-- Runs on Raspberry Pi 5 CPU with int8 quantization
+| Google Speech Recognition | Cloud (needs internet) | English + multilingual | `"google"` |
+| faster-whisper | Local offline CPU/GPU | English (tiny to large) | `"faster_whisper"` |
 
 ### Audio Backend Options
 
 | Backend | Interface | Hardware |
 |---|---|---|
-| USB ("usb") | Standard audio, Windows and Linux/Pi | Any USB mic + USB speaker |
-| GPIO I2S ("gpio") | I2S MEMS mic + I2S DAC on Pi GPIO | INMP441/SPH0645 mic + MAX98357 amp |
+| USB (`"usb"`) | Standard audio, Windows and Linux/Pi | Any USB mic + USB speaker |
+| GPIO I2S (`"gpio"`) | I2S MEMS mic + I2S DAC on Pi GPIO | INMP441/SPH0645 mic + MAX98357 amp |
 
 ### GPIO I2S Wiring (BCM numbering)
 
@@ -470,7 +398,7 @@ dtoverlay=googlevoicehat-codec
 dtoverlay=max98357a
 ```
 
-### 🇬🇧 English Voice Commands
+### English Voice Commands
 
 | Trigger Words | Action | Robot Spoken Response |
 |---|---|---|
@@ -484,31 +412,7 @@ dtoverlay=max98357a
 | `shape` | Report object shape | *"The shape is [shape]"* |
 | `exit` `stop` `shutdown` `quit` | Safe shutdown | *"Shutting down"* |
 
----
-
-### 🇧🇩 Bangla Voice Commands (বাংলা ভয়েস কমান্ড)
-
-> These commands are recognized when using the **Sherpa-ONNX Zipformer Bangla model**.
-> The system uses romanized phonetic matching (transliteration) of Bengali speech output.
-
-| Bangla Command | Bengali Script | Meaning | Action | Robot Response |
-|---|---|---|---|---|
-| `tulun` | তুলুন | "Pick it up" | Vision pick — scan & grasp object | *"বস্তু তুলছি"* (Picking object) |
-| `rakun` | রাখুন | "Put it down / Place" | Drop at default bin & open gripper | *"রাখা হয়েছে"* (Placed/Dropped) |
-| `dekun` | দেখুন | "Look / Check" | Detect object in workspace | *"আমি দেখছি [রং] [আকৃতি]"* (I see [color] [shape]) |
-| `shajan` | সাজান | "Arrange / Sort" | Vision pick + auto color-sort drop | *"সাজানো হচ্ছে"* (Sorting) |
-| `chodun` | ছাড়ুন | "Release / Let go" | Open gripper — drop object | *"ছেড়ে দেওয়া হয়েছে"* (Released) |
-| `lal bin e rakun` | লাল বিনে রাখুন | "Put in red bin" | Move to RED drop pose | *"লাল বিনে রাখছি"* (Placing in red bin) |
-| `nil bin e rakun` | নীল বিনে রাখুন | "Put in blue bin" | Move to BLUE drop pose | *"নীল বিনে রাখছি"* (Placing in blue bin) |
-| `shobuj bin e rakun` | সবুজ বিনে রাখুন | "Put in green bin" | Move to GREEN drop pose | *"সবুজ বিনে রাখছি"* (Placing in green bin) |
-| `rang ki` | রং কী | "What color is it?" | Detect and report color | *"রং হলো [রং]"* (The color is [color]) |
-| `akiti ki` | আকৃতি কী | "What shape is it?" | Detect and report shape | *"আকৃতি হলো [আকৃতি]"* (The shape is [shape]) |
-| `bari jao` | বাড়ি যাও | "Go home / Rest" | Return to observation pose | *"পর্যবেক্ষণ অবস্থানে যাচ্ছি"* |
-| `bondho koro` | বন্ধ করো | "Shut down / Stop" | Safe shutdown sequence | *"বন্ধ হচ্ছে"* (Shutting down) |
-
-> **Note:** Bangla phonetic output from Zipformer may vary slightly. The command parser uses substring matching to handle minor transcription differences (e.g., `tul` matches `tulun`, `rak` matches `rakun`).
-
-### Configuration (top of voiceCommandFinal.py)
+### Configuration (top of `voiceCommandFinal.py`)
 
 ```python
 ROBOT_IP       = "10.10.10.10"    # Niryo Ned hotspot IP
@@ -549,6 +453,65 @@ sudo systemctl status voicecontrol.service
 ```
 
 ---
+
+## Module 3B — Bangla Voice Command Control
+
+**File:** `voiceCommandBangla.py` | **Platform:** Raspberry Pi 5 (separate standalone script)
+
+### How It Works
+
+A dedicated Bangla voice controller that runs **independently** from the English module. Uses the **Sherpa-ONNX Online Zipformer Transducer** — a fully offline, real-time streaming Bangla ASR model. No changes needed in `voiceCommandFinal.py`.
+
+```bash
+# Run Bangla voice control
+python voiceCommandBangla.py
+```
+
+**Model download:**
+https://k2-fsa.github.io/sherpa/onnx/pretrained_models/online-transducer/zipformer-transducer-models.html
+
+**Key advantages of Zipformer for Bangla:**
+- Real-time streaming — very low latency
+- Fully offline after one-time model download
+- Native Bangla phonetic output
+- Runs on Raspberry Pi 5 CPU with int8 quantization
+
+### Bangla Command Reference (বাংলা কমান্ড)
+
+| Bangla (Phonetic) | Bengali Script | Meaning | Robot Action |
+|---|---|---|---|
+| `tulun` | তুলুন | Pick it up | Vision scan and grasp object |
+| `rakun` | রাখুন | Put it down | Drop at default bin |
+| `dekun` | দেখুন | Look / Check | Detect object in workspace |
+| `shajan` | সাজান | Sort / Arrange | Vision pick + auto color-sort |
+| `chodun` | ছাড়ুন | Release | Open gripper — release object |
+| `lal bine rakun` | লাল বিনে রাখুন | Put in red bin | Move to RED drop pose |
+| `nil bine rakun` | নীল বিনে রাখুন | Put in blue bin | Move to BLUE drop pose |
+| `shobuj bine rakun` | সবুজ বিনে রাখুন | Put in green bin | Move to GREEN drop pose |
+| `rang ki` | রং কী | What color? | Detect and report color |
+| `akiti ki` | আকৃতি কী | What shape? | Detect and report shape |
+| `bari jao` | বাড়ি যাও | Go home | Return to observation pose |
+| `bondho koro` | বন্ধ করো | Shut down | Safe shutdown |
+
+> **Matching:** Zipformer outputs romanized Bengali phonetics. The script uses substring matching — so `tul` matches `tulun`, `rak` matches `rakun`, etc.
+
+### Configuration (top of `voiceCommandBangla.py`)
+
+```python
+ROBOT_IP       = "10.10.10.10"
+WORKSPACE_NAME = "work_2k22"
+RECORD_SECONDS = 4
+SAMPLE_RATE    = 16000   # Must be 16000 for Zipformer
+
+SHERPA_ENCODER = "models/bangla-zipformer/encoder-epoch-99-avg-1.onnx"
+SHERPA_DECODER = "models/bangla-zipformer/decoder-epoch-99-avg-1.onnx"
+SHERPA_JOINER  = "models/bangla-zipformer/joiner-epoch-99-avg-1.onnx"
+SHERPA_TOKENS  = "models/bangla-zipformer/tokens.txt"
+```
+
+---
+
+
 
 ## Connection and Setup Guide
 
