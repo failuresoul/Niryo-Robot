@@ -190,7 +190,8 @@ Niryo-Robot/
 +-- visionPickLoop.py            <- Module 1: Autonomous vision pick and color sort
 +-- gestureControl.py            <- Module 2: Hand gesture control (dev version)
 +-- gesture_control_final.py     <- Module 2: Hand gesture control (final, color-sorted drop)
-+-- voiceCommandFinal.py         <- Module 3: Voice command + TTS + Bangla STT
++-- voiceCommandFinal.py         <- Module 3A: Voice command (English) + Google STT / Whisper
++-- voiceCommandBangla.py        <- Module 3B: Voice command (Bangla only) + Sherpa-ONNX Zipformer
 |
 +-- media/
     +-- home.jpg                 <- Robot at home/initial pose
@@ -350,13 +351,68 @@ The display window shows green dots on all 21 hand landmarks, direction arrow fr
 
 ---
 
-## Module 3 Voice Command Control
+## Module 3A — English Voice Command Control
 
 **File:** `voiceCommandFinal.py`
 
 ### How It Works
 
-Runs headlessly on a **Raspberry Pi 5** as a `systemd` service. Listens via USB microphone, transcribes speech using a selectable STT engine (including Bangla Zipformer), speaks feedback via USB speaker, and sends commands wirelessly.
+Voice control runs headlessly on a **Raspberry Pi 5** as a `systemd` service. It listens via USB microphone, transcribes speech using a selectable STT engine, speaks feedback via USB speaker, and sends commands wirelessly.
+
+---
+
+## Module 3B — Bangla Voice Command Control
+
+**File:** `voiceCommandBangla.py` ← *Separate standalone script for Bangla only*
+
+### How It Works
+
+A dedicated Bangla voice controller that runs independently from the English module. Uses the **Sherpa-ONNX Online Zipformer Transducer** model for real-time, fully offline Bangla speech recognition — no changes needed in `voiceCommandFinal.py`.
+
+```bash
+# Run Bangla voice control separately
+python voiceCommandBangla.py
+```
+
+### Bangla Command Reference (বাংলা কমান্ড)
+
+| Bangla Command | Bengali Script | Meaning | Robot Action |
+|---|---|---|---|
+| `tulun` | তুলুন | Pick it up | Vision scan and grasp object |
+| `rakun` | রাখুন | Put it down / Place | Drop at default bin |
+| `dekun` | দেখুন | Look / Check / See | Detect object in workspace |
+| `shajan` | সাজান | Arrange / Sort | Vision pick + auto color-sort drop |
+| `chodun` | ছাড়ুন | Release / Let go | Open gripper — release object |
+| `lal bine rakun` | লাল বিনে রাখুন | Put in red bin | Move to RED drop pose |
+| `nil bine rakun` | নীল বিনে রাখুন | Put in blue bin | Move to BLUE drop pose |
+| `shobuj bine rakun` | সবুজ বিনে রাখুন | Put in green bin | Move to GREEN drop pose |
+| `rang ki` | রং কী | What color is it? | Detect and report color |
+| `akiti ki` | আকৃতি কী | What shape is it? | Detect and report shape |
+| `bari jao` | বাড়ি যাও | Go home / Rest | Return to observation pose |
+| `bondho koro` | বন্ধ করো | Shut down / Stop | Safe shutdown |
+
+> **How matching works:** The Zipformer outputs romanized Bengali phonetics. The script uses **substring matching** on these phonetics — so even if the model outputs `tul` instead of `tulun`, the command is still correctly matched.
+
+### Module 3B Configuration
+
+Edit the top of `voiceCommandBangla.py`:
+
+```python
+ROBOT_IP       = "10.10.10.10"          # Niryo Ned IP
+WORKSPACE_NAME = "work_2k22"            # Calibrated workspace
+RECORD_SECONDS = 4                      # Listening window
+SAMPLE_RATE    = 16000                  # Must be 16000 for Zipformer
+
+# Paths to downloaded Sherpa-ONNX Bangla Zipformer model files
+SHERPA_ENCODER = "models/bangla-zipformer/encoder-epoch-99-avg-1.onnx"
+SHERPA_DECODER = "models/bangla-zipformer/decoder-epoch-99-avg-1.onnx"
+SHERPA_JOINER  = "models/bangla-zipformer/joiner-epoch-99-avg-1.onnx"
+SHERPA_TOKENS  = "models/bangla-zipformer/tokens.txt"
+```
+
+---
+
+## Module 3 — Common Voice Setup
 
 ### Speech-to-Text Engine Options
 
@@ -410,19 +466,43 @@ dtoverlay=googlevoicehat-codec
 dtoverlay=max98357a
 ```
 
-### Supported Voice Commands
+### 🇬🇧 English Voice Commands
 
 | Trigger Words | Action | Robot Spoken Response |
 |---|---|---|
-| "pick", "grab", "take" | Vision pick from workspace | "Picking object" then "Picked [color] [shape]" |
-| "drop", "place", "release" | Drop at default bin | "Going to drop point" then "Dropped" |
-| "drop red" / "drop blue" / "drop green" | Color-targeted drop | "Dropping at [color] bin" |
-| "sort", "short" | Vision pick + auto color-sort | "Starting sort" then "Sorted" |
-| "observe", "home" | Return to observation pose | "Going to observation position" |
-| "check", "what", "see", "detect" | Detect and report object | "I see a [color] [shape]" |
-| "colour", "color" | Report object color | "The color is [color]" |
-| "shape" | Report object shape | "The shape is [shape]" |
-| "exit", "stop", "shutdown", "quit" | Safe shutdown | "Shutting down" |
+| `pick` `grab` `take` | Vision pick from workspace | *"Picking object"* → *"Picked [color] [shape]"* |
+| `drop` `place` `release` | Drop at default bin | *"Going to drop point"* → *"Dropped"* |
+| `drop red` / `drop blue` / `drop green` | Color-targeted drop | *"Dropping at [color] bin"* |
+| `sort` `short` | Vision pick + auto color-sort | *"Starting sort"* → *"Sorted"* |
+| `observe` `home` | Return to observation pose | *"Going to observation position"* |
+| `check` `what` `see` `detect` | Detect and report object | *"I see a [color] [shape]"* |
+| `colour` `color` | Report object color | *"The color is [color]"* |
+| `shape` | Report object shape | *"The shape is [shape]"* |
+| `exit` `stop` `shutdown` `quit` | Safe shutdown | *"Shutting down"* |
+
+---
+
+### 🇧🇩 Bangla Voice Commands (বাংলা ভয়েস কমান্ড)
+
+> These commands are recognized when using the **Sherpa-ONNX Zipformer Bangla model**.
+> The system uses romanized phonetic matching (transliteration) of Bengali speech output.
+
+| Bangla Command | Bengali Script | Meaning | Action | Robot Response |
+|---|---|---|---|---|
+| `tulun` | তুলুন | "Pick it up" | Vision pick — scan & grasp object | *"বস্তু তুলছি"* (Picking object) |
+| `rakun` | রাখুন | "Put it down / Place" | Drop at default bin & open gripper | *"রাখা হয়েছে"* (Placed/Dropped) |
+| `dekun` | দেখুন | "Look / Check" | Detect object in workspace | *"আমি দেখছি [রং] [আকৃতি]"* (I see [color] [shape]) |
+| `shajan` | সাজান | "Arrange / Sort" | Vision pick + auto color-sort drop | *"সাজানো হচ্ছে"* (Sorting) |
+| `chodun` | ছাড়ুন | "Release / Let go" | Open gripper — drop object | *"ছেড়ে দেওয়া হয়েছে"* (Released) |
+| `lal bin e rakun` | লাল বিনে রাখুন | "Put in red bin" | Move to RED drop pose | *"লাল বিনে রাখছি"* (Placing in red bin) |
+| `nil bin e rakun` | নীল বিনে রাখুন | "Put in blue bin" | Move to BLUE drop pose | *"নীল বিনে রাখছি"* (Placing in blue bin) |
+| `shobuj bin e rakun` | সবুজ বিনে রাখুন | "Put in green bin" | Move to GREEN drop pose | *"সবুজ বিনে রাখছি"* (Placing in green bin) |
+| `rang ki` | রং কী | "What color is it?" | Detect and report color | *"রং হলো [রং]"* (The color is [color]) |
+| `akiti ki` | আকৃতি কী | "What shape is it?" | Detect and report shape | *"আকৃতি হলো [আকৃতি]"* (The shape is [shape]) |
+| `bari jao` | বাড়ি যাও | "Go home / Rest" | Return to observation pose | *"পর্যবেক্ষণ অবস্থানে যাচ্ছি"* |
+| `bondho koro` | বন্ধ করো | "Shut down / Stop" | Safe shutdown sequence | *"বন্ধ হচ্ছে"* (Shutting down) |
+
+> **Note:** Bangla phonetic output from Zipformer may vary slightly. The command parser uses substring matching to handle minor transcription differences (e.g., `tul` matches `tulun`, `rak` matches `rakun`).
 
 ### Configuration (top of voiceCommandFinal.py)
 

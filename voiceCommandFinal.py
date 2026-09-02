@@ -389,6 +389,7 @@ try:
             continue
         print(f"[Voice] Heard: \"{command}\"")
  
+        # ── Shutdown ──────────────────────────────────────────────────────────
         if any(w in command for w in ["exit", "stop", "shutdown", "quit"]):
             audio.speak("Shutting down")
             break
